@@ -15,27 +15,22 @@ class TestAuthModels(test_base.BaseTestCase):
 
     def test_get(self):
         m = models.User
-        success, user = m.create_user(name='name_1', username='username_1',
-                                      auth_id='auth_id_1', email='email_1',
-                                      password_raw='foo')
+        success, user = m.create_user(auth_id='auth_id_1', password_raw='foo')
         self.assertEqual(success, True)
         self.assertTrue(user is not None)
         self.assertTrue(user.password is not None)
 
-        token = m.create_auth_token('auth_id_1')
+        # user.key.id() is required to retrieve the auth token
+        user_id = user.key.id()
 
-        self.assertEqual(m.get_by_username('username_1'), user)
-        self.assertEqual(m.get_by_username('username_2'), None)
+        token = m.create_auth_token(user_id)
 
         self.assertEqual(m.get_by_auth_id('auth_id_1'), user)
         self.assertEqual(m.get_by_auth_id('auth_id_2'), None)
 
-        self.assertEqual(m.get_by_email('email_1'), user)
-        self.assertEqual(m.get_by_email('email_2'), None)
-
-        u, ts = m.get_by_auth_token('auth_id_1', token)
+        u, ts = m.get_by_auth_token(user_id, token)
         self.assertEqual(u, user)
-        u, ts = m.get_by_auth_token('auth_id_2', token)
+        u, ts = m.get_by_auth_token('fake_user_id', token)
         self.assertEqual(u, None)
 
         u = m.get_by_auth_password('auth_id_1', 'foo')
@@ -47,28 +42,14 @@ class TestAuthModels(test_base.BaseTestCase):
 
     def test_create_user(self):
         m = models.User
-        success, info = m.create_user(name='name_1', username='username_1',
-                                      auth_id='auth_id_1', email='email_1',
-                                      password_raw='foo')
+        success, info = m.create_user(auth_id='auth_id_1', password_raw='foo')
         self.assertEqual(success, True)
         self.assertTrue(info is not None)
         self.assertTrue(info.password is not None)
 
-        success, info = m.create_user(name='name_1', username='username_1',
-                                      auth_id='auth_id_1', email='email_1')
-        self.assertEqual(success, False)
-        self.assertEqual(info, ['username', 'email'])
-
-        success, info = m.create_user(name='name_1', username='username_2',
-                                      auth_id='auth_id_1', email='email_2')
+        success, info = m.create_user(auth_id='auth_id_1')
         self.assertEqual(success, False)
         self.assertEqual(info, ['auth_id'])
-
-        success, info = m.create_user(name='name_1', username='username_2',
-                                      auth_id='auth_id_2', email='email_1',
-            _unique_email=False)
-        self.assertEqual(success, True)
-        self.assertTrue(info is not None)
 
     def test_token(self):
         m = models.UserToken
